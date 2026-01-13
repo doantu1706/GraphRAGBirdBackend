@@ -1,0 +1,264 @@
+/* --- 1. CẤU TRÚC CHÍNH (Layout) --- */
+.app {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background-color: #ffffff;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* --- 2. SIDEBAR (Cột trái) --- */
+.sidebar-container {
+  width: 260px;
+  background-color: #f9fafb; /* Màu nền xám rất nhạt */
+  border-right: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+  flex-shrink: 0;
+}
+
+/* Nút "Cuộc trò chuyện mới" - XANH DƯƠNG */
+.new-chat {
+  width: 100%;
+  padding: 12px;
+  background-color: #67c0da; /* Màu xanh như hình mẫu */
+  color: white;
+  border: none;
+  border-radius: 8px; /* Bo góc */
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 20px;
+  transition: background-color 0.2s;
+  box-shadow: 0 2px 5px rgba(103, 192, 218, 0.3);
+}
+
+.new-chat:hover {
+  background-color: #5bb0ca;
+}
+
+/* Danh sách chat item */
+.sidebar-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.sidebar-item {
+  padding: 10px 12px;
+  margin-bottom: 5px;
+  border-radius: 6px;
+  color: #4b5563;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.sidebar-item:hover {
+  background-color: #e5e7eb;
+}
+
+.sidebar-item.active {
+  background-color: #e0e7ff; /* Màu nền khi đang chọn */
+  color: #67c0da;
+  font-weight: 600;
+}
+
+/* --- 3. KHUNG CHAT CHÍNH (Cột phải) --- */
+.chat-layout-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: white;
+  position: relative;
+}
+
+/* Header: Hệ thống tra cứu chim */
+.chat-header {
+  padding: 15px;
+  text-align: center;
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+  border-bottom: 1px solid #f0f0f0;
+  background: white;
+}
+
+.chat-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden; 
+}
+
+/* --- 4. TIN NHẮN (Màu xanh và Xám) --- */
+.chat-window {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  padding-bottom: 100px; /* Chừa chỗ cho ô nhập liệu */
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Căn giữa luồng chat */
+}
+
+.messages-container {
+  width: 100%;
+  max-width: 800px; /* Giới hạn chiều rộng cho dễ đọc giống ChatGPT */
+  display: flex;
+  flex-direction: column;
+}
+
+.message {
+  padding: 12px 18px;
+  margin-bottom: 15px;
+  line-height: 1.6;
+  font-size: 15px;
+  width: fit-content;
+  max-width: 80%;
+  word-wrap: break-word;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+/* Tin nhắn User: Nền XANH, chữ TRẮNG, bo tròn */
+.message.user {
+  align-self: flex-end; /* Đẩy sang phải */
+  background-color: #67c0da; 
+  color: white;
+  border-radius: 18px 18px 2px 18px; /* Bo góc trừ góc dưới phải */
+}
+
+/* Tin nhắn Bot: Nền XÁM, chữ ĐEN, bo tròn */
+.message.assistant {
+  align-self: flex-start; /* Đẩy sang trái */
+  background-color: #f3f4f6; /* Màu xám nhạt */
+  color: #1f2937;
+  border-radius: 18px 18px 18px 2px; /* Bo góc trừ góc dưới trái */
+}
+
+/* Bong bóng loading */
+.loading-bubble {
+  align-self: flex-start;
+  background-color: #f3f4f6;
+  color: #6b7280;
+  padding: 10px 15px;
+  border-radius: 15px;
+  font-style: italic;
+  font-size: 14px;
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* --- 5. Ô NHẬP LIỆU (Input & Button) --- */
+
+/* Lớp vỏ ngoài cùng: Định vị xuống đáy và tạo hiệu ứng mờ nền */
+.chat-input-wrapper {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  padding: 20px 0 30px 0; /* Khoảng cách lề dưới */
+  
+  /* Tạo hiệu ứng nền mờ dần từ dưới lên để input nổi bật */
+  background: linear-gradient(to top, rgba(255,255,255,1) 60%, rgba(255,255,255,0));
+  
+  display: flex;
+  justify-content: center; /* Căn giữa màn hình */
+  z-index: 100; /* Đảm bảo luôn nằm trên tin nhắn */
+}
+
+/* Cái hộp chứa Input và Nút */
+.chat-input-container {
+  width: 90%;
+  max-width: 800px; /* Bằng chiều rộng với cột tin nhắn */
+  
+  background-color: #ffffff;
+  border: 1px solid #e5e5e5; /* Viền xám mỏng */
+  border-radius: 16px; /* Bo tròn các góc */
+  
+  padding: 8px 10px 8px 20px; /* Padding bên trong */
+  
+  display: flex;
+  align-items: center;
+  gap: 12px; /* Khoảng cách giữa ô nhập và nút gửi */
+  
+  /* Đổ bóng nhẹ giúp thanh nhập nổi lên */
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+/* Hiệu ứng khi bấm vào ô nhập */
+.chat-input-container:focus-within {
+  border-color: #67c0da; /* Viền đổi màu xanh khi nhập */
+  box-shadow: 0 4px 20px rgba(103, 192, 218, 0.15);
+}
+
+/* Ô nhập chữ */
+.chat-input-container input {
+  flex: 1; /* Chiếm hết khoảng trống còn lại */
+  border: none;
+  outline: none;
+  font-size: 16px;
+  color: #333;
+  background: transparent;
+  padding: 8px 0;
+  font-family: inherit;
+}
+
+/* Placeholder (Chữ gợi ý mờ mờ) */
+.chat-input-container input::placeholder {
+  color: #9ca3af;
+}
+
+/* Nút Gửi */
+.chat-input-container button {
+  background-color: #67c0da; /* Màu xanh dương chủ đạo */
+  color: white;
+  border: none;
+  
+  padding: 10px 20px; /* Kích thước nút */
+  border-radius: 12px; /* Bo góc nút */
+  
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Hiệu ứng khi di chuột vào nút */
+.chat-input-container button:hover {
+  background-color: #5bb0ca; /* Đậm hơn chút */
+  transform: translateY(-1px); /* Nổi lên nhẹ */
+}
+
+/* Hiệu ứng khi nút bị vô hiệu hóa (Disabled) */
+.chat-input-container button:disabled {
+  background-color: #e5e7eb;
+  color: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Ảnh trong tin nhắn */
+.msg-image {
+  max-width: 100%;
+  border-radius: 12px;
+  margin-top: 8px;
+  border: 1px solid #eee;
+}
+
+.msg-link {
+  color: #2563eb;
+  font-weight: 600;
+  text-decoration: none;
+}
+.msg-link:hover { text-decoration: underline; }
