@@ -39,8 +39,6 @@ class BirdGraphRAG:
         self.birdspedia = BirdspediaFetcher()
         
         # --- QUẢN LÝ ĐA PHIÊN (MULTI-SESSION) ---
-        # Thay vì self.chat_history = [], ta dùng dict để lưu theo session_id
-        # Cấu trúc: { "session_1": [msg1, msg2], "session_2": [] }
         self.sessions = {} 
         
         print("✅ System Ready!\n")
@@ -264,7 +262,8 @@ class BirdGraphRAG:
             
             return "Xin lỗi, tôi không tìm thấy danh sách phù hợp trên hệ thống dữ liệu."
 
-        # --- CASE 2: TRA CỨU CỤ THỂ (LOOKUP) ---
+        # --- CASE 2: TRA CỨU CỤ THỂ (LOOKUP) - NÂNG CẤP LOGIC 3 LỚP ---
+        
         bird_name = analysis.get('bird_name')
         
         if not bird_name:
@@ -274,19 +273,54 @@ class BirdGraphRAG:
             return response
 
         print(f"   🐦 Target Bird: {bird_name}")
+        sci_name = None
+
+        # =================================================================================
+        # 🟢 LỚP 1: TỪ ĐIỂN CỨNG (Priority 1 - Nhanh & Chính xác nhất)
+        # =================================================================================
+        normalized_input = bird_name.lower().strip()
+        if normalized_input in self.wikidata.common_map:
+            sci_name = self.wikidata.common_map[normalized_input]
+            print(f"   ✅ [Layer 1] Dictionary HIT: {bird_name} -> {sci_name}")
         
-        # Định danh
-        bird_data = self.wikidata.get_bird_data(bird_name)
-        if bird_data:
-            sci_name = bird_data['scientific_name']
-        else:
-            sci_name = self.llm.invoke(f"Scientific name of '{bird_name}'? Return only name.").content.strip()
-        print(f"   🔬 Scientific Name: {sci_name}")
+        # =================================================================================
+        # 🟡 LỚP 2: DỊCH SANG TIẾNG ANH -> WIKIDATA (Priority 2 - Dữ liệu phong phú)
+        # =================================================================================
+        if not sci_name:
+            print("   ⚠️ [Layer 1] Dict MISS. Moving to Layer 2 (Translate)...")
+            try:
+                # 1. Nhờ LLM dịch sang tiếng Anh
+                trans_prompt = f"Translate the bird name '{bird_name}' from Vietnamese to English. Return ONLY the English Common Name. No extra text."
+                english_name = self.llm.invoke(trans_prompt).content.strip().replace('"', '').replace("'", "")
+                print(f"   🌍 [Layer 2] Translated: '{bird_name}' -> '{english_name}'")
+                
+                # 2. Tìm trên Wikidata bằng tên Tiếng Anh
+                wiki_result = self.wikidata.get_bird_data(english_name)
+                
+                if wiki_result and wiki_result.get('scientific_name'):
+                    sci_name = wiki_result['scientific_name']
+                    print(f"   ✅ [Layer 2] Wikidata HIT (via English): {sci_name}")
+                else:
+                    print(f"   ❌ [Layer 2] Wikidata MISS for '{english_name}'.")
+            except Exception as e:
+                print(f"   ❌ [Layer 2] Translation/Search Error: {e}")
+
+        # =================================================================================
+        # 🔴 LỚP 3: LLM DỰ ĐOÁN (Priority 3 - Cứu cánh cuối cùng)
+        # =================================================================================
+        if not sci_name:
+            print("   ⚠️ [Layer 2] Failed. Moving to Layer 3 (LLM Prediction)...")
+            prompt_sci = f"What is the Scientific name of the bird '{bird_name}'? Return ONLY the Scientific Name (Genus species). No explanation."
+            sci_name = self.llm.invoke(prompt_sci).content.strip().replace('"', '').replace("'", "")
+            print(f"   🧠 [Layer 3] LLM Predicted: {sci_name}")
+
+        print(f"   🔬 Scientific Name Final: {sci_name}")
 
         # Kiểm tra & Tải dữ liệu
         status = self.graph.check_data_status(sci_name)
         if not status['exists']:
             print("   ✨ New Entity detected!")
+        # Truyền bird_name gốc (Tiếng Việt) để nếu cần crawl Wiki thì ưu tiên tiếng Việt
         self._lazy_load_data(sci_name, bird_name, status)
 
         # Lấy Context
@@ -294,7 +328,7 @@ class BirdGraphRAG:
         
         # Tạo Prompt trả lời
         if intent == "specific" or lookup_type == "specific":
-            # Chế độ trả lời ngắn gọn (Sửa lỗi hiển thị Map)
+            # Chế độ trả lời ngắn gọn
             system_instructions = """
             Answer DIRECTLY and CONCISELY based on the user's specific question.
             - Answer ONLY what is asked (e.g., color, food).
