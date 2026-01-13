@@ -6,10 +6,26 @@ from src.config import Config
 
 class Neo4jHandler:
     def __init__(self):
+        # --- CẤU HÌNH DRIVER SIÊU BỀN (FIX LỖI KẾT NỐI NGẮT) ---
         self.driver = GraphDatabase.driver(
             Config.NEO4J_URI, 
-            auth=(Config.NEO4J_USER, Config.NEO4J_PASSWORD)
+            auth=(Config.NEO4J_USER, Config.NEO4J_PASSWORD),
+            # 1. Tự động ngắt kết nối cũ sau 3 phút để tạo mới (tránh bị treo)
+            max_connection_lifetime=180,
+            # 2. Giữ kết nối sống
+            keep_alive=True,
+            # 3. Kiểm tra kết nối trước khi dùng (Tránh lỗi defunct connection)
+            liveness_check_timeout=0, 
+            # 4. Chờ tối đa 10s để lấy kết nối
+            connection_acquisition_timeout=10.0
         )
+        
+        # Kiểm tra kết nối ngay khi khởi động
+        try:
+            self.driver.verify_connectivity()
+            print("   ✅ [Neo4j] Connected to AuraDB successfully with Robust Config!")
+        except Exception as e:
+            print(f"   ❌ [Neo4j] Init Failed: {e}")
         
         print("   ⏳ Loading Embedding Model (Google Gemini)...")
         if not os.getenv("GOOGLE_API_KEY"):
@@ -22,7 +38,7 @@ class Neo4jHandler:
     def _init_indices(self):
         try:
              with self.driver.session() as session:
-                # Xóa index cũ nếu sai kích thước (Google dùng 768)
+                # Xóa index cũ nếu sai kích thước
                 session.run("DROP INDEX bird_desc_index IF EXISTS")
         except:
             pass
@@ -52,6 +68,7 @@ class Neo4jHandler:
                b.image_url IS NOT NULL as has_image,
                b.mass IS NOT NULL as has_mass
         """
+        # Dùng session quản lý context để an toàn hơn
         with self.driver.session() as session:
             res = session.run(query, sci=scientific_name).single()
             if not res: return {"exists": False}
@@ -87,25 +104,23 @@ class Neo4jHandler:
                         wingspan=wingspan, lifespan=lifespan, 
                         food=food, family=family, conservation=conservation)
 
-    # --- HÀM NÀY ĐƯỢC NÂNG CẤP ĐỂ XỬ LÝ LỖI 429 ---
+    # --- HÀM XỬ LÝ LỖI 429 (BẠN ĐÃ LÀM ĐÚNG) ---
     def update_wiki(self, scientific_name, common_name, summary):
         if not summary: return
         
         vector = None
-        # Thử tối đa 3 lần nếu gặp lỗi
         for attempt in range(3):
             try:
-                # Gọi API Google để mã hóa văn bản
                 vector = self.embeddings.embed_query(summary)
-                break # Nếu thành công thì thoát vòng lặp
+                break 
             except Exception as e:
                 error_msg = str(e)
                 if "429" in error_msg or "RESOURCE_EXHAUSTED" in error_msg:
                     print(f"      ⚠️ Google Rate Limit hit. Waiting 60s... (Attempt {attempt+1}/3)")
-                    time.sleep(60) # Chờ 60 giây rồi thử lại
+                    time.sleep(60) 
                 else:
                     print(f"      ❌ Embedding Error: {e}")
-                    return # Lỗi khác thì bỏ qua luôn
+                    return 
 
         if not vector:
             print("      ❌ Failed to embed summary after retries.")
