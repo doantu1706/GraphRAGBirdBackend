@@ -6,8 +6,7 @@ langchain
 langchain-core
 langchain-community
 langchain-groq
-langchain-huggingface
-sentence-transformers
+langchain-google-genai
 requests
 wikipedia
 SPARQLWrapper
@@ -15,4 +14,4 @@ python-dotenv
 beautifulsoup4
 lxml
 tiktoken
-
+# XÓA DÒNG sentence-transformers và langchain-huggingface ĐI
