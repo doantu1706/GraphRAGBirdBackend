@@ -1,0 +1,25 @@
+# --- Framework & Server ---
+flask
+flask-cors
+gunicorn          # Cần thiết để chạy trên Render (Production)
+
+# --- Database ---
+neo4j
+
+# --- AI & LLM ---
+langchain
+langchain-core
+langchain-community
+langchain-groq    # Quan trọng: Dùng cho model Llama 3
+langchain-huggingface  # Quan trọng: Dùng cho Embedding miễn phí (all-MiniLM-L6-v2)
+
+# --- Data Fetching ---
+requests
+wikipedia
+SPARQLWrapper     # Dùng cho Wikidata
+beautifulsoup4
+lxml
+
+# --- Utilities ---
+python-dotenv
+tiktoken

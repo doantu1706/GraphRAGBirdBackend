@@ -1,0 +1,22 @@
+version: "3.8"
+
+services:
+  neo4j:
+    image: neo4j:5.15.0 # Sử dụng phiên bản 5.x ổn định
+    container_name: bird_graph_db
+    ports:
+      - "7474:7474" # Port HTTP (để truy cập giao diện web Neo4j Browser)
+      - "7687:7687" # Port Bolt (để Python kết nối vào DB)
+    environment:
+      # Đặt mật khẩu là 'password123' (phải khớp với file .env của Python)
+      NEO4J_AUTH: neo4j/password123
+      # Kích hoạt plugin APOC (rất cần thiết cho các thuật toán Graph sau này)
+      NEO4J_PLUGINS: '["apoc"]'
+      # Cấu hình bộ nhớ (tùy chỉnh nếu máy yếu/mạnh)
+      NEO4J_dbms_memory_heap_initial__size: 512m
+      NEO4J_dbms_memory_heap_max__size: 1G
+    volumes:
+      # Lưu dữ liệu ra ngoài máy thật để không bị mất khi tắt container
+      - ./neo4j_data:/data
+      - ./neo4j_logs:/logs
+    restart: always # Tự động khởi động lại nếu bị crash
